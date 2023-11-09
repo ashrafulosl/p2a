@@ -1,0 +1,11 @@
+.option {
+    background-color: #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    margin: 10px;
+}
+
+.explanation.p-4.rounded-md.mb-3 {
+    background-color: #f7941d26;
+}
