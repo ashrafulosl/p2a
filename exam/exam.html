@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MCQ Exam</title>
+    <link rel="stylesheet" href="exam.css">
+    <style>
+        .timer {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: right;
+            margin-bottom: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MCQ Exam</h1>
+        <div style="position: fixed; top: 0; right: 0; background: white; padding: 10px;">
+            Time Elapsed: <span id="timer">00:00:00</span>
+        </div>
+        <form id="examForm">
+            <div id="questionsContainer"></div>
+            <button type="submit">Submit Answers</button>
+        </form>
+    </div>
+
+    <script>
+        const questions = JSON.parse(localStorage.getItem('questions') || '[]');
+        const questionsContainer = document.getElementById('questionsContainer');
+
+        // Create the questions
+        questions.forEach((question, index) => {
+            const questionHTML = `
+                <div class="question">
+                    <p>${index + 1}. ${question.question}</p>
+                    ${Object.entries(question.options).map(([key, option]) => `
+                        <label class="option">
+                            <input type="radio" name="question_${index}" value="${key}">
+                            ${key}: ${option}
+                        </label>
+                    `).join('')}
+                </div>
+            `;
+            questionsContainer.innerHTML += questionHTML;
+        });
+
+        // Timer logic
+        let seconds = 0, minutes = 0, hours = 0;
+        const timerElement = document.getElementById('timer');
+        let timerInterval = setInterval(() => {
+            seconds++;
+            if (seconds == 60) {
+                seconds = 0;
+                minutes++;
+            }
+            if (minutes == 60) {
+                minutes = 0;
+                hours++;
+            }
+            timerElement.textContent = 
+                (hours < 10 ? "0" : "") + hours + ":" +
+                (minutes < 10 ? "0" : "") + minutes + ":" +
+                (seconds < 10 ? "0" : "") + seconds;
+        }, 1000);
+
+        // Stop the timer and store time when the exam is submitted
+        document.getElementById('examForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const userAnswers = {};
+            questions.forEach((_, index) => {
+                const selectedOption = document.querySelector(`input[name="question_${index}"]:checked`);
+                userAnswers[`question_${index}`] = selectedOption ? selectedOption.value : null;
+            });
+
+            // Save answers and the total time taken
+            localStorage.setItem('userAnswers', JSON.stringify(userAnswers));
+            localStorage.setItem('timeTaken', timerElement.textContent);  // Save the time
+
+            // Redirect to results page
+            clearInterval(timerInterval);
+            window.location.href = 'result.html';
+        });
+    </script>
+</body>
+</html>

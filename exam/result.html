@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Exam Results</title>
+    <link rel="stylesheet" href="result.css">
+    <style>
+        .time-taken {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Exam Results</h1>
+        <p><a href="index.html">Go to Home Page</a></p>
+
+        <div class="time-taken">
+            Time Taken: <span id="timeTaken"></span>
+        </div>
+
+        <p>Your Score: <span id="score"></span> / <span id="total"></span></p>
+        <div id="resultsContainer"></div>
+        <p><a href="index.html">Go to Home Page</a></p>
+    </div>
+
+    <script>
+        // Retrieve data from localStorage
+        const questions = JSON.parse(localStorage.getItem('questions') || '[]');
+        const userAnswers = JSON.parse(localStorage.getItem('userAnswers') || '{}');
+        const correctPoints = parseFloat(localStorage.getItem('correctPoints') || '1');
+        const wrongPoints = parseFloat(localStorage.getItem('wrongPoints') || '0.25');
+        const timeTaken = localStorage.getItem('timeTaken') || '00:00:00';
+
+        let score = 0;
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        // Display time taken
+        document.getElementById('timeTaken').textContent = timeTaken;
+
+        questions.forEach((question, index) => {
+            const correctAnswer = question.answer;
+            const userAnswer = userAnswers[`question_${index}`];
+            const isCorrect = userAnswer === correctAnswer;
+
+            if (userAnswer === null) {
+                // Do nothing
+            } else if (isCorrect) {
+                score += correctPoints;
+            } else {
+                score -= wrongPoints;
+            }
+
+            // Create HTML for question and options
+            const resultHTML = `
+                <div style="background-color: ${userAnswer === undefined ? '#ffeeba' : '#fff'};">
+                    <p><strong>Question ${index + 1}:</strong> ${question.question}</p>
+                   
+                    ${Object.entries(question.options).map(([key, option]) => `
+                        <div class="option ${userAnswer === null ? 'answer_null' : ''}  ${key === correctAnswer ? 'correct-answer' : ''} ${key === userAnswer && key !== correctAnswer ? 'user-answer-incorrect' : ''} ${userAnswer === 'null' ? 'answer_null' : ''}">
+                            <label>
+                                <input type="radio" disabled ${key === userAnswer ? 'checked' : ''}>
+                                ${key}: ${option} ${key === userAnswer ? '(Your Answer)' : ''} ${key === correctAnswer ? '(Correct)' : ''}
+                            </label>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            resultsContainer.innerHTML += resultHTML;
+        });
+
+        // Display the score
+        document.getElementById('score').textContent = score.toFixed(2);
+        document.getElementById('total').textContent = questions.length;
+    </script>
+</body>
+</html>
