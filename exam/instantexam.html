@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Instant MCQ Exam</title>
+    <link rel="stylesheet" href="exam.css">
+    <style>
+        /* Fixed top-right corner for Score and Time Elapsed */
+        .top-right {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #fff;
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        /* Styling for correct and incorrect answers */
+        .correct-answer {
+            background-color: #d4edda;
+            color: black !important;
+        }
+
+        .user-answer-incorrect {
+            background-color: #f8d7da;
+            color: black !important;
+        }
+
+        /* Highlight correct answer even if user answered incorrectly */
+        .correct-highlight {
+            border: 2px solid #28a745;
+        }
+
+        /* Styling for feedback messages */
+        .feedback {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .feedback.correct {
+            color: #28a745;
+        }
+
+        .feedback.incorrect {
+            color: #dc3545;
+        }
+
+        /* General question styling */
+        .question {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+
+        .option {
+            display: block;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .option input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        /* Disable pointer events after answering */
+        .option.disabled {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <!-- Fixed Top-Right Corner for Score and Time -->
+    <div class="top-right">
+        <div>
+            Time Elapsed: <span id="timer">00:00:00</span>
+        </div>
+        <div>
+            Your Score: <span id="score">0</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Instant MCQ Exam</h1>
+        <form id="instantExamForm">
+            <div id="questionsContainer"></div>
+        </form>
+        <p><a href="index.html">Go to Home Page</a></p>
+    </div>
+
+    <script>
+        // Retrieve data from localStorage
+        const questions = JSON.parse(localStorage.getItem('questions') || '[]');
+        const correctPoints = parseFloat(localStorage.getItem('correctPoints') || '1');
+        const wrongPoints = parseFloat(localStorage.getItem('wrongPoints') || '0.25');
+
+        const questionsContainer = document.getElementById('questionsContainer');
+        const scoreElement = document.getElementById('score');
+        const timerElement = document.getElementById('timer');
+
+        let score = 0;
+        let seconds = 0, minutes = 0, hours = 0;
+
+        // Initialize total points display (optional)
+        // You can display total points if needed
+        // For example: Total Points: questions.length * correctPoints
+
+        // Timer logic
+        const timerInterval = setInterval(() => {
+            seconds++;
+            if (seconds === 60) {
+                seconds = 0;
+                minutes++;
+            }
+            if (minutes === 60) {
+                minutes = 0;
+                hours++;
+            }
+            timerElement.textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }, 1000);
+
+        // Create the questions
+        questions.forEach((question, index) => {
+            const questionDiv = document.createElement('div');
+            questionDiv.classList.add('question');
+
+            const questionText = document.createElement('p');
+            questionText.textContent = `${index + 1}. ${question.question}`;
+            questionDiv.appendChild(questionText);
+
+            // Create options
+            Object.entries(question.options).forEach(([key, option]) => {
+                const optionLabel = document.createElement('label');
+                optionLabel.classList.add('option');
+                optionLabel.setAttribute('data-option-key', key);
+
+                const optionInput = document.createElement('input');
+                optionInput.type = 'radio';
+                optionInput.name = `question_${index}`;
+                optionInput.value = key;
+
+                optionLabel.appendChild(optionInput);
+                optionLabel.appendChild(document.createTextNode(`${key}: ${option}`));
+
+                // Add event listener for instant feedback
+                optionInput.addEventListener('change', () => handleAnswer(index, key));
+
+                questionDiv.appendChild(optionLabel);
+            });
+
+            // Feedback area
+            const feedbackDiv = document.createElement('div');
+            feedbackDiv.classList.add('feedback');
+            feedbackDiv.id = `feedback_${index}`;
+            questionDiv.appendChild(feedbackDiv);
+
+            questionsContainer.appendChild(questionDiv);
+        });
+
+        function handleAnswer(index, selectedOption) {
+            const feedbackDiv = document.getElementById(`feedback_${index}`);
+            const correctAnswer = questions[index].answer;
+            const questionDiv = questionsContainer.children[index];
+            const options = questionDiv.querySelectorAll('.option');
+
+            // Disable all options for this question
+            options.forEach(option => {
+                option.classList.add('disabled');
+                const input = option.querySelector('input');
+                if (input) {
+                    input.disabled = true;
+                }
+            });
+
+            // Determine if the selected answer is correct
+            const isCorrect = selectedOption === correctAnswer;
+            if (isCorrect) {
+                feedbackDiv.textContent = 'Correct!';
+                feedbackDiv.classList.add('correct');
+                feedbackDiv.classList.remove('incorrect');
+                score += correctPoints;
+            } else {
+                feedbackDiv.textContent = `Wrong! Correct answer: ${correctAnswer}`;
+                feedbackDiv.classList.add('incorrect');
+                feedbackDiv.classList.remove('correct');
+                score -= wrongPoints;
+            }
+
+            // Update the score display
+            scoreElement.textContent = score.toFixed(2);
+
+            // Highlight the selected option
+            options.forEach(option => {
+                const input = option.querySelector('input');
+                const optionKey = option.getAttribute('data-option-key');
+                if (optionKey === selectedOption) {
+                    if (isCorrect) {
+                        option.classList.add('correct-answer');
+                    } else {
+                        option.classList.add('user-answer-incorrect');
+                    }
+                }
+                // Highlight the correct answer
+                if (optionKey === correctAnswer) {
+                    option.classList.add('correct-answer');
+                }
+            });
+        }
+
+        // Optional: Save user answers to localStorage if needed
+        /*
+        function handleAnswer(index, selectedOption) {
+            // Existing logic...
+
+            // Save user answer
+            const userAnswers = JSON.parse(localStorage.getItem('userAnswers') || '{}');
+            userAnswers[`question_${index}`] = selectedOption;
+            localStorage.setItem('userAnswers', JSON.stringify(userAnswers));
+        }
+        */
+
+        // Optional: Handle page unload to save time or other data
+        window.addEventListener('beforeunload', () => {
+            clearInterval(timerInterval);
+            localStorage.setItem('timeTaken', timerElement.textContent);
+            // Optionally save score or other data
+        });
+    </script>
+</body>
+</html>
